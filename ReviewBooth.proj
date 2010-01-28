@@ -1,0 +1,172 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Project DefaultTargets="all" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+
+	<PropertyGroup>
+        <project>ReviewBooth</project>
+		<ReviewBoothRoot Condition="'$(ReviewBoothRoot)'==''">$(MSBuildStartupDirectory)</ReviewBoothRoot>
+
+        <!-- ===================================================== -->
+        <!-- Configuration, build group -->
+        <!-- ===================================================== -->
+        <!-- default configuration is "Debug"; the other is "Release" -->
+		<Configuration Condition="'$(Configuration)'==''">Debug</Configuration>
+		
+        <!-- default build group is "build"; the others are "nunit" and "samples"; see ItemGroup <vsprojects> -->
+        <buildgroup Condition="'$(buildgroup)'==''">build</buildgroup>
+        <nunitgroup Condition="'$(nunitgroup)'==''">nunit</nunitgroup>
+
+        <!-- ===================================================== -->
+        <!-- Directories -->
+        <!-- ===================================================== -->
+        <srcRoot>$(ReviewBoothRoot)\src</srcRoot>
+        <libRoot>$(ReviewBoothRoot)\lib</libRoot>
+		<docRoot>$(ReviewBoothRoot)\docs</docRoot>
+		<userRoot>$(ReviewBoothRoot)\user</userRoot>
+		<userDir>$(userRoot)\$(USERNAME)\$(COMPUTERNAME)</userDir>
+        <buildDir>$(ReviewBoothRoot)\build</buildDir>
+
+        <!-- ===================================================== -->
+        <!-- Importing -->
+        <!-- ===================================================== -->
+        <MSBuildCommunityTasks>MSBuild.Community.Tasks</MSBuildCommunityTasks>
+        <MSBuildCommunityTasksPath>$(libRoot)\$(MSBuildCommunityTasks)</MSBuildCommunityTasksPath>
+        <MSBuildCommunityTasksLib>$(MSBuildCommunityTasksPath)\$(MSBuildCommunityTasks).dll</MSBuildCommunityTasksLib>
+    </PropertyGroup>
+	
+	
+	<!-- ===================================================== -->
+    <!-- Importing -->
+    <!-- ===================================================== -->
+    <UsingTask AssemblyFile="$(MSBuildCommunityTasksLib)" TaskName="$(MSBuildCommunityTasks).AssemblyInfo" />
+    <UsingTask AssemblyFile="$(MSBuildCommunityTasksLib)" TaskName="$(MSBuildCommunityTasks).FileUpdate" />
+    <UsingTask AssemblyFile="$(MSBuildCommunityTasksLib)" TaskName="$(MSBuildCommunityTasks).NUnit" />
+    <UsingTask AssemblyFile="$(MSBuildCommunityTasksLib)" TaskName="$(MSBuildCommunityTasks).Version" />
+    <UsingTask AssemblyFile="$(MSBuildCommunityTasksLib)" TaskName="$(MSBuildCommunityTasks).Zip" />
+	
+
+	<!-- ===================================================== -->
+    <!-- Item groups -->
+    <!-- ===================================================== -->
+
+	<ItemGroup>
+       <!-- set metadata <group>build</group> for task projects -->
+       <!-- set metadata <group>nunit</group> for NUnit projects -->
+
+	   <!--
+       <vsprojects Include="$(srcRoot)\PertNear.Core\PertNear.Core.csproj">
+           <group>build</group>
+       </vsprojects>
+
+       <vsprojects Include="$(srcRoot)\PertNear.Data\PertNear.Data.csproj">
+           <group>build</group>
+       </vsprojects>
+
+       <vsprojects Include="$(srcRoot)\PertNear.Services\PertNear.Services.csproj">
+           <group>build</group>
+       </vsprojects>
+
+       <vsprojects Include="$(srcRoot)\PertNear.WWW\PertNear.WWW.csproj">
+           <group>build</group>
+       </vsprojects>
+	   
+       <vsprojects Include="$(srcRoot)\PertNear.Tests\PertNear.Tests.csproj">
+            <group>nunit</group>
+        </vsprojects>
+		-->
+        
+    </ItemGroup>
+
+    <ItemGroup>
+        <defaultexcludes Include="$(srcRoot)\**\bin\**" />
+        <defaultexcludes Include="$(srcRoot)\**\obj\**" />
+        <defaultexcludes Include="$(srcRoot)\**\build\**" />
+        <defaultexcludes Include="$(srcRoot)\**\*.suo" />
+        <defaultexcludes Include="$(srcRoot)\**\*.user" />
+        <defaultexcludes Include="$(toolsRoot)\**" />
+        <defaultexcludes Include="$(userRoot)" />
+    </ItemGroup>    
+    
+
+	<!-- ===================================================== -->
+    <!-- Targets -->
+    <!-- ===================================================== -->
+
+    <Target Name="clean">
+        <Message Text="=========================================================" />
+        <Message Text="Clean &quot;$(project)&quot;, configuration &quot;$(configuration)&quot;"/>
+        <Message Text="=========================================================" />
+
+        <RemoveDir Directories="$(buildDir)" />
+    </Target>
+
+    <Target Name="version">
+		<Message Text="=========================================================" />
+		<Message Text="Version &quot;$(project)&quot;, configuration &quot;$(configuration)&quot;"/>
+		<Message Text="=========================================================" />
+
+		<Version VersionFile="VERSION.txt">
+			<Output TaskParameter="Major" PropertyName="Major" />
+			<Output TaskParameter="Minor" PropertyName="Minor" />
+			<Output TaskParameter="Build" PropertyName="Build" />
+			<Output TaskParameter="Revision" PropertyName="Revision" />
+		</Version>
+
+		<Version VersionFile="$(ReviewBoothRoot)\VERSION.txt"
+				 Condition="'$(Configuration)'=='Release'"
+				 RevisionType="Increment" >
+			<Output TaskParameter="Major" PropertyName="Major" />
+			<Output TaskParameter="Minor" PropertyName="Minor" />
+			<Output TaskParameter="Build" PropertyName="Build" />
+			<Output TaskParameter="Revision" PropertyName="Revision" />
+		</Version>
+
+		<PropertyGroup>
+			<Version>$(Major).$(Minor).$(Build).$(Revision)</Version>
+		</PropertyGroup>
+
+		<Message Text="Building Version: $(Version)"/>
+
+        <AssemblyInfo CodeLanguage="CS"
+				OutputFile="$(srcRoot)\GlobalInfo.cs"
+				AssemblyConfiguration="$(Configuration)"
+				AssemblyCompany="$(project), OSP"
+				AssemblyProduct="$(project)"
+				AssemblyCopyright="Copyright (c) $(project)"
+				ComVisible="false"
+				CLSCompliant="true"
+				AssemblyVersion="$(Version)"
+				AssemblyFileVersion="$(Version)" />
+
+    </Target>
+	
+	<!-- Build the VS projects of one build group, copy .dll, .pdb, .xml to the bin directory -->
+    <Target Name="build" DependsOnTargets="version">
+        <Message Text="=========================================================" />
+        <Message Text="Build &quot;$(project)&quot;, configuration &quot;$(configuration)&quot;, group &quot;$(buildgroup)&quot;"/>
+        <Message Text="=========================================================" />
+
+		<MSBuild Projects="@(vsprojects)"
+               Condition="'%(group)'=='$(buildgroup)'"
+               Properties="$(BuildProperties)" >
+           <Output TaskParameter="TargetOutputs" ItemName="targetOutputs"/>
+       </MSBuild>
+    </Target>
+	
+	<Target Name="test" DependsOnTargets="pertnear">
+        <Message Text="=========================================================" />
+        <Message Text="Test &quot;$(project)&quot;, configuration &quot;$(configuration)&quot;, group &quot;$(testgroup)&quot;"/>
+        <Message Text="=========================================================" />
+
+        <MSBuild Projects="@(vsprojects)"
+			   Condition="'%(group)'=='$(nunitgroup)'"
+			   Properties="$(BuildProperties)" >
+            <Output TaskParameter="TargetOutputs" ItemName="testOutputs"/>
+        </MSBuild>
+
+        <NUnit ToolPath="$(libRoot)\NUnit\bin\net-2.0" Assemblies="@(testOutputs)" />
+    </Target>    
+    
+	<Target Name="all">
+		
+	</Target>
+</Project>
