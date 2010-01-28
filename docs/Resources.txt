@@ -1,0 +1,1 @@
+CodeSaga: this is a TFS/SVN history browser app written in Asp.Net MVC.  It has a nice display of changes but no capability of adding comments or notes of changes.  http://code.google.com/p/codesaga/

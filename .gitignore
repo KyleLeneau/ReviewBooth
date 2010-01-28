@@ -1,0 +1,15 @@
+build
+ 
+src/GlobalInfo.cs
+ 
+src/*.user
+
+src/*/bin
+ 
+src/*/obj
+ 
+src/_ReSharper.*
+ 
+src/*.suo
+ 
+src/*.sln.cache
